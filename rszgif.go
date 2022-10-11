@@ -27,12 +27,13 @@ func processImage(w io.Writer, r io.Reader, transform ImgResTransformer) error {
 	// store first frame in holder
 	img := image.NewRGBA(b)
 
+	resImgPal := make([]*image.Paletted, len(im.Image))
 	// transforming each frame.
 	for index, frame := range im.Image {
 		bounds := frame.Bounds()
 		prev := img
 		draw.Draw(img, bounds, frame, bounds.Min, draw.Over)
-		im.Image[index] = imageToPaletted(transform(img), frame.Palette)
+		resImgPal[index] = imageToPaletted(transform(img), frame.Palette)
 
 		switch im.Disposal[index] {
 		case gif.DisposalBackground:
@@ -41,6 +42,8 @@ func processImage(w io.Writer, r io.Reader, transform ImgResTransformer) error {
 			img = prev
 		}
 	}
+
+	im.Image = resImgPal
 
 	// Set new height and width into config
 	im.Config.Width = im.Image[0].Bounds().Max.X
