@@ -1,11 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
 	"image/gif"
 	"io"
+	"sync"
 )
 
 // processImage :nodoc:
@@ -24,27 +26,35 @@ func processImage(w io.Writer, r io.Reader, transform ImgResTransformer) error {
 	// get first frame
 	firstFrame := im.Image[0].Bounds()
 	b := image.Rect(0, 0, firstFrame.Dx(), firstFrame.Dy())
-	// store first frame in holder
-	img := image.NewRGBA(b)
 
-	resImgPal := make([]*image.Paletted, len(im.Image))
+	// store first frame in holder
+	holder := image.NewRGBA(b)
+
+	resHolder := make([]*image.Paletted, len(im.Image))
+
+	var wg sync.WaitGroup
 	// transforming each frame.
 	for index, frame := range im.Image {
 		bounds := frame.Bounds()
-		prev := img
-		draw.Draw(img, bounds, frame, bounds.Min, draw.Over)
-		resImgPal[index] = imageToPaletted(transform(img), frame.Palette)
+		prev := holder
+		draw.Draw(holder, bounds, frame, bounds.Min, draw.Over)
+
+		wg.Add(1)
+		imageToPaletted(&wg, resHolder, index, transform(holder), frame.Palette)
 
 		switch im.Disposal[index] {
 		case gif.DisposalBackground:
-			img = image.NewRGBA(b)
+			holder = image.NewRGBA(b)
 		case gif.DisposalPrevious:
-			img = prev
+			holder = prev
+		case gif.DisposalNone:
+			continue
 		}
 	}
 
-	im.Image = resImgPal
+	wg.Wait()
 
+	im.Image = resHolder
 	// Set new height and width into config
 	im.Config.Width = im.Image[0].Bounds().Max.X
 	im.Config.Height = im.Image[0].Bounds().Max.Y
@@ -52,11 +62,15 @@ func processImage(w io.Writer, r io.Reader, transform ImgResTransformer) error {
 	return gif.EncodeAll(w, im)
 }
 
-func imageToPaletted(img image.Image, p color.Palette) *image.Paletted {
+func imageToPaletted(wg *sync.WaitGroup, resHolder []*image.Paletted, index int, img image.Image, p color.Palette) {
+	defer wg.Done()
+
+	fmt.Println("sini")
 	b := img.Bounds()
 	pm := image.NewPaletted(b, p)
 	draw.FloydSteinberg.Draw(pm, b, img, image.ZP)
-	return pm
+
+	resHolder[index] = pm
 }
 
 // ImgResTransformer is a function that transforms an image.
