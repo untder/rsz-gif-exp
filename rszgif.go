@@ -46,9 +46,8 @@ func processImage(w io.Writer, r io.Reader, transform ImgResTransformer) error {
 			holder = image.NewRGBA(b)
 		case gif.DisposalPrevious:
 			holder = prev
-		case gif.DisposalNone:
-			continue
 		}
+		// on gif.DisposalNone keep use written holder
 	}
 
 	wg.Wait()
@@ -66,7 +65,8 @@ func imageToPaletted(wg *sync.WaitGroup, resHolder []*image.Paletted, index int,
 
 	b := img.Bounds()
 	pm := image.NewPaletted(b, p)
-	draw.FloydSteinberg.Draw(pm, b, img, image.ZP)
+	// use zero image point
+	draw.FloydSteinberg.Draw(pm, b, img, image.Point{})
 
 	resHolder[index] = pm
 }
