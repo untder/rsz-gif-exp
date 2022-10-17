@@ -39,7 +39,7 @@ func processImage(w io.Writer, r io.Reader, transform ImgResTransformer) error {
 		draw.Draw(holder, bounds, frame, bounds.Min, draw.Over)
 
 		wg.Add(1)
-		imageToPaletted(&wg, resHolder, index, transform(holder), frame.Palette)
+		go imageToPaletted(&wg, resHolder, index, transform(holder), frame.Palette)
 
 		switch im.Disposal[index] {
 		case gif.DisposalBackground:
