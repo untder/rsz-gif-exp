@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -65,7 +64,6 @@ func processImage(w io.Writer, r io.Reader, transform ImgResTransformer) error {
 func imageToPaletted(wg *sync.WaitGroup, resHolder []*image.Paletted, index int, img image.Image, p color.Palette) {
 	defer wg.Done()
 
-	fmt.Println("sini")
 	b := img.Bounds()
 	pm := image.NewPaletted(b, p)
 	draw.FloydSteinberg.Draw(pm, b, img, image.ZP)
